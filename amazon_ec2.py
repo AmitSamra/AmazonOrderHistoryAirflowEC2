@@ -55,7 +55,7 @@ t1 = PostgresOperator(
 # ----------------------------------------------------------------------------------------------------
 # Read input csv from AWS S3 into pandas, peform ETL, export final dataframe to PostgreSQL on AWS RDS
 
-csv_input_path = '/Users/amit/Coding/Projects/AmazonOrderHistoryAirflowAWS_EC2/amazon_purchases.csv'
+csv_input_path = 'https://amazon-order-history.s3.amazonaws.com/amazon_purchases.csv'
 
 def etl_csv():
 
@@ -156,14 +156,13 @@ t2 = PythonOperator(
 )
 
 # ----------------------------------------------------------------------------------------------------
-# Run Jupyter Notebook locally
+# Run Jupyter Notebook
 
-notebook_in_path = '/Users/amit/Coding/Projects/AmazonOrderHistoryAirflowAWS_EC2/AmazonOrderHistoryAirflowAWS_EC2_input.ipynb'
-notebook_out_path = '/Users/amit/Coding/Projects/AmazonOrderHistoryAirflowAWS_EC2/AmazonOrderHistoryAirflowAWS_EC2_output.ipynb'
+notebook_in_path = '/home/airflow/airflow/AmazonOrderHistoryAirflowAWS_EC2_input.ipynb'
+notebook_out_path = '/home/airflow/airflow/AmazonOrderHistoryAirflowAWS_EC2_output.ipynb'
 
 def run_notebook():
 	pm.execute_notebook(notebook_in_path,notebook_out_path)
-
 
 t3 = PythonOperator(
 	task_id = 'run_notebook',
@@ -172,5 +171,7 @@ t3 = PythonOperator(
 	dag = dag
 )
 
+# ----------------------------------------------------------------------------------------------------
+# Dependencies
 
 t1 >> t2 >> t3
