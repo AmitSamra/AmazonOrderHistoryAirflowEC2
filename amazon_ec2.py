@@ -41,8 +41,7 @@ dag = DAG(
 	)
 
 # ----------------------------------------------------------------------------------------------------
-# Connect to Postgres on AWS RDS and import output csv from previous task
-# Unlike MySQL, Postgres will import column names in lowercase unless wrapped in quotes. 
+# Connect to Postgres on AWS RDS and create schema
 
 t1 = PostgresOperator(
 	task_id = 'drop_schema_postgres',
@@ -54,32 +53,9 @@ t1 = PostgresOperator(
 )
 
 # ----------------------------------------------------------------------------------------------------
-# Get input csv stored on AWS S3
+# Read input csv from AWS S3 into pandas, peform ETL, export final dataframe to PostgreSQL on AWS RDS
 
 csv_input_path = '/Users/amit/Coding/Projects/AmazonOrderHistoryAirflowAWS_EC2/amazon_purchases.csv'
-
-def get_amazon_purchases():
-	"""
-	Gets Amazon order history csv stored on AWS S3.
-	"""
-	url = "https://amazon-order-history.s3.amazonaws.com/amazon_purchases.csv"
-	response = requests.get(url)
-	#path = os.path.join(os.path.dirname(__file__),"../amazon_purchases.csv")
-	path = csv_input_path
-	with open(path, 'wb') as f:
-		f.write(response.content)
-
-t2 = PythonOperator(
-	task_id = 'get_amazon_purchases',
-	python_callable = get_amazon_purchases,
-	provide_context = False,
-	dag = dag
-)
-
-# ----------------------------------------------------------------------------------------------------
-# Read input csv into pandas, peform ETL, export final dataframe as output csv
-
-csv_output_path = '/Users/amit/Coding/Projects/AmazonOrderHistoryAirflowAWS_EC2/amazon_purchases_2.csv'
 
 def etl_csv():
 
@@ -172,7 +148,7 @@ def etl_csv():
 	# Export df to sql using df.to_sql
 	df.to_sql('purchases_aws', con=engine, if_exists = 'replace', index=False, schema='amazon')
 
-t3 = PythonOperator(
+t2 = PythonOperator(
 	task_id = 'etl_amazon_purchases.csv',
 	python_callable = etl_csv,
 	provide_context = False,
@@ -189,7 +165,7 @@ def run_notebook():
 	pm.execute_notebook(notebook_in_path,notebook_out_path)
 
 
-t4 = PythonOperator(
+t3 = PythonOperator(
 	task_id = 'run_notebook',
 	python_callable = run_notebook,
 	provide_context = False,
@@ -197,4 +173,4 @@ t4 = PythonOperator(
 )
 
 
-t1 >> t2 >> t3 >> t4
+t1 >> t2 >> t3
