@@ -45,7 +45,7 @@ dag = DAG(
 
 t1 = PostgresOperator(
 	task_id = 'drop_schema_postgres',
-	postgres_conn_id = 'amazon_order_history_aws',
+	postgres_conn_id = 'amazon_order_history_ec2',
 	sql = '''
 	DROP SCHEMA amazon CASCADE;
 	CREATE SCHEMA amazon;''',
@@ -143,7 +143,7 @@ def etl_csv():
 	df
 
 	# Connect to PostgreSQL AWS RDS using sqlalchemy
-	engine = create_engine("postgres://" + os.environ.get("AWS_POSTGRES_USER") + ":" + os.environ.get("AWS_POSTGRES_PASSWORD") + "@" + "amazon.coqoinqxklrf.us-east-1.rds.amazonaws.com:5432/postgres")
+	engine = create_engine("postgres://" + os.environ.get("AWS_POSTGRES_USER") + ":" + os.environ.get("AWS_POSTGRES_PASSWORD") + "@" + "amazon-ec2.coqoinqxklrf.us-east-1.rds.amazonaws.com:5432/postgres")
 
 	# Export df to sql using df.to_sql
 	df.to_sql('purchases_aws', con=engine, if_exists = 'replace', index=False, schema='amazon')
