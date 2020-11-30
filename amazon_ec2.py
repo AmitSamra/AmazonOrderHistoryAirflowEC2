@@ -47,6 +47,7 @@ t1 = PostgresOperator(
 	task_id = 'drop_schema_postgres',
 	postgres_conn_id = 'amazon_order_history_ec2',
 	sql = '''
+	CREAE SCHEMA IF NOT EXISTS amazon;
 	DROP SCHEMA amazon CASCADE;
 	CREATE SCHEMA amazon;''',
 	dag = dag
@@ -158,8 +159,8 @@ t2 = PythonOperator(
 # ----------------------------------------------------------------------------------------------------
 # Run Jupyter Notebook
 
-notebook_in_path = '/home/airflow/airflow/AmazonOrderHistoryAirflowAWS_EC2_input.ipynb'
-notebook_out_path = '/home/airflow/airflow/AmazonOrderHistoryAirflowAWS_EC2_output.ipynb'
+notebook_in_path = '/home/ubuntu/airflow/AmazonOrderHistoryAirflowAWS_EC2_input.ipynb'
+notebook_out_path = '/home/ubuntu/airflow/AmazonOrderHistoryAirflowAWS_EC2_output.ipynb'
 
 def run_notebook():
 	pm.execute_notebook(notebook_in_path,notebook_out_path)
