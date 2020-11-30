@@ -47,7 +47,7 @@ t1 = PostgresOperator(
 	task_id = 'drop_schema_postgres',
 	postgres_conn_id = 'amazon_order_history_ec2',
 	sql = '''
-	CREAE SCHEMA IF NOT EXISTS amazon;
+	CREATE SCHEMA IF NOT EXISTS amazon;
 	DROP SCHEMA amazon CASCADE;
 	CREATE SCHEMA amazon;''',
 	dag = dag
@@ -173,6 +173,21 @@ t3 = PythonOperator(
 )
 
 # ----------------------------------------------------------------------------------------------------
+# Save Output Notebook to AWS S3
+
+hook_s3 = airflow.hooks.S3_hook.S3Hook('amazon_ec2_s3')
+
+def load_files_s3():
+	hook_s3.load_file(notebook_out_path, 'AmazonOrderHistoryAirflowAWS_EC2_output.ipynb', 'amazon-ec2', replace=True)
+
+t4 = PythonOperator(
+	task_id = 'load_files_to_s3',
+	python_callable = load_files_s3,
+	provide_context = False,
+	dag = dag
+	)
+
+# ----------------------------------------------------------------------------------------------------
 # Dependencies
 
-t1 >> t2 >> t3
+t1 >> t2 >> t3 >> t4
