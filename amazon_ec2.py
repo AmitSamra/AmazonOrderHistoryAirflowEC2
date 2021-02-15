@@ -2,7 +2,8 @@ import airflow
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
-from datetime import timedelta, datetime
+from datetime import timedelta
+from datetime import datetime as dt
 import os
 import requests
 import csv
@@ -25,8 +26,8 @@ load_dotenv(dotenv_path=dotenv_local_path, verbose=True)
 
 default_args = {
 	'owner':'amit',
-	#'start_date': datetime(2020,11,4,0),
-	'start_date': datetime.now(),
+	#'start_date': dt(2020,11,4,0),
+	'start_date': dt.now(),
 	'retries': 0,
 	'retry_delay': timedelta(minutes=1),
 }
@@ -70,7 +71,7 @@ def etl_csv():
 	df = df.rename(columns={'CarrierName&TrackingNumber':'Carrier', 'ItemSubtotalTax': 'Tax', 
 		'ShipmentDate':'ShipDate'})
 
-	# Drop Website column
+	# Drop Unnecessary columns
 	del df['Website']
 
 	# Replace NaN
@@ -121,24 +122,33 @@ def etl_csv():
 	df.loc[~df.Carrier.isin(mail), 'Carrier'] = 'Other'
 
 	# Combine categories
-	df['Category'] = df['Category'].replace(['NOTEBOOK_COMPUTER','COMPUTER_DRIVE_OR_STORAGE','RAM_MEMORY','TABLET_COMPUTER','MONITOR','COMPUTER_COMPONENT', 'FLASH_MEMORY', 'SOFTWARE', 'INK_OR_TONER', 'COMPUTER_INPUT_DEVICE', 'CABLE_OR_ADAPTER', 'NETWORKING_DEVICE', 'KEYBOARDS', 'COMPUTER_ADD_ON', 'NETWORKING_ROUTER','MEMORY_READER','WIRELESS_ACCESSORY','SCANNER','PRINTER'],'COMPUTER')
-	df['Category'] = df['Category'].replace(['HEADPHONES','SPEAKERS','BATTERY','MULTIFUNCTION_DEVICE','ELECTRONIC_CABLE','SURVEILANCE_SYSTEMS','SECURITY_CAMERA','WATCH','CONSUMER_ELECTRONICS','CE_ACCESSORY','ELECTRONIC_ADAPTER','ELECTRIC_FAN','CAMCORDER','HANDHELD_OR_PDA','TUNER','AMAZON_BOOK_READER','CELLULAR_PHONE','POWER_SUPPLIES_OR_PROTECTION','CAMERA_OTHER_ACCESSORIES','CHARGING_ADAPTER'],'ELECTRONICS')
-	df['Category'] = df['Category'].replace(['HAIR_STYLING_AGENT','PERSONAL_CARE_APPLIANCE','PROFESSIONAL_HEALTHCARE','HEALTH_PERSONAL_CARE','SHAMPOO','VITAMIN','ABIS_DRUGSTORE','BEAUTY'],'HEALTH_BEAUTY')
+	df['Category'] = df['Category'].replace(['NOTEBOOK_COMPUTER','COMPUTER_DRIVE_OR_STORAGE','RAM_MEMORY','TABLET_COMPUTER','MONITOR','COMPUTER_COMPONENT', 'FLASH_MEMORY', 'SOFTWARE', 'INK_OR_TONER', 'COMPUTER_INPUT_DEVICE', 'CABLE_OR_ADAPTER', 'NETWORKING_DEVICE', 'KEYBOARDS', 'COMPUTER_ADD_ON', 'NETWORKING_ROUTER','MEMORY_READER','WIRELESS_ACCESSORY','SCANNER','PRINTER', 'ABIS_DOWNLOADABLE_SOFTWARE'],'COMPUTER')
+	df['Category'] = df['Category'].replace(['HEADPHONES','SPEAKERS','BATTERY','MULTIFUNCTION_DEVICE','ELECTRONIC_CABLE','SURVEILANCE_SYSTEMS','SECURITY_CAMERA','WATCH','CONSUMER_ELECTRONICS','CE_ACCESSORY','ELECTRONIC_ADAPTER','ELECTRIC_FAN','CAMCORDER','HANDHELD_OR_PDA','TUNER','AMAZON_BOOK_READER','CELLULAR_PHONE','POWER_SUPPLIES_OR_PROTECTION','CAMERA_OTHER_ACCESSORIES','CHARGING_ADAPTER', 'ABIS_ELECTRONICS', 'SYSTEM_POWER_DEVICE'],'ELECTRONICS')
+	df['Category'] = df['Category'].replace(['HAIR_STYLING_AGENT','PERSONAL_CARE_APPLIANCE','PROFESSIONAL_HEALTHCARE','HEALTH_PERSONAL_CARE','SHAMPOO','VITAMIN','ABIS_DRUGSTORE','BEAUTY', 'DIETARY_SUPPLEMENTS'],'HEALTH_BEAUTY')
 	df['Category'] = df['Category'].replace(['KITCHEN','SEEDS_AND_PLANTS','HOME_LIGHTING_ACCESSORY','BOTTLE','OUTDOOR_LIVING','ELECTRIC_FAN','TABLECLOTH','COFFEE_MAKER','HOME_BED_AND_BATH','HOME_LIGHTING_AND_LAMPS','SMALL_HOME_APPLIANCES'],'HOME')
 	df['Category'] = df['Category'].replace(['SHOES','PANTS','SHIRT','SHORTS','OUTERWEAR','SWEATSHIRT','HAT', 'SOCKSHOSIERY','UNDERWEAR','TECHNICAL_SPORT_SHOE'],'APPAREL')
 	df['Category'] = df['Category'].replace(['OUTDOOR_RECREATION_PRODUCT','SPORTING_GOODS'],'SPORTS_OUTDOOR')
 	df['Category'] = df['Category'].replace(['TEA','COFFEE'],'GROCERY')
-	df['Category'] = df['Category'].replace(['AUTO_PART','HARDWARE','AUTO_ACESSORY','PRECISION_MEASURING','BUILDING_MATERIAL','AUTO_ACCESSORY'],'TOOLS')
+	df['Category'] = df['Category'].replace(['AUTO_PART','HARDWARE','AUTO_ACESSORY','PRECISION_MEASURING','BUILDING_MATERIAL','AUTO_ACCESSORY', 'SCREWDRIVER', 'CAR_ALARM', 'MECHANICAL_COMPONENTS', 'TOOLS'],'AUTO_TOOLS')
 	df['Category'] = df['Category'].replace(['WRITING_INSTRUMENT','PAPER_PRODUCT','BACKPACK','CARRYING_CASE_OR_BAG','CE_CARRYING_CASE_OR_BAG','OFFICE_PRODUCTS'],'OFFICE')
 	df['Category'] = df['Category'].replace(['ABIS_DVD','TOYS_AND_GAMES','ABIS_MUSIC','DOWNLOADABLE_VIDEO_GAME','ART_AND_CRAFT_SUPPLY'],'ENTERTAINMENT')
-	df['Category'] = df['Category'].replace(['ABIS_BOOK'],'BOOKS')
-	df['Category'] = df['Category'].replace(['ABIS_GIFT_CARD'],'GIFT_CARD')
-	df['Category'] = df['Category'].replace(['AV_FURNITURE','CELLULAR_PHONE_CASE','PHONE_ACCESSORY','PET_SUPPLIES','ACCESSORY','BAG','ACCESSORY_OR_PART_OR_SUPPLY'],'OTHER')
+	df['Category'] = df['Category'].replace(['ABIS_BOOK', 'BOOKS_1973_AND_LATER'],'BOOKS')
+	df['Category'] = df['Category'].replace(['AV_FURNITURE','CELLULAR_PHONE_CASE','PHONE_ACCESSORY','PET_SUPPLIES','ACCESSORY','BAG','ACCESSORY_OR_PART_OR_SUPPLY', 'LUGGAGE', 'LAB_SUPPLY', 'CADDY', 'ABIS_GIFT_CARD', 'BISS'],'OTHER')
 	df['Category'] = df['Category'].replace(['','unknown'],'UNKNOWN')
 
+	# Fix formatting for category names
+	df['Category'] = df['Category'].str.replace('_', ' & ').str.title()
+
 	# Reduce Sellers
-	df.loc[~df.Seller.isin(['Amazon.com']), 'Seller'] = 'ThirdParty'
-	df.loc[df.Seller.isin(['Amazon.com']), 'Seller'] = 'Amazon'
+	seller_amazon = ['Amazon.com', 'AmazonWireless', 'Amazon.com Services LLC', 'Amazon']
+	df.loc[df.Seller.isin(seller_amazon), 'Seller'] = 'Amazon'
+	df.loc[~df.Seller.isin(seller_amazon), 'Seller'] = 'Third Party'
+
+	# Simplify Condition column
+	used = ['used verygood', 'used good', 'used mint']
+	df.loc[df.Condition.isin(used), 'Condition'] = 'Used'
+	df.Condition.loc[df.Condition == 'unknown'] = 'Unknown'
+	df.Condition = df.Condition.str.replace('new', 'New')
 
 	# Final dataframe
 	df
