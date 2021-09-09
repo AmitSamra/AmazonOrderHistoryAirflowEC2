@@ -77,7 +77,8 @@ def etl_csv():
 	# Replace NaN
 	df.Category.fillna('unknown', inplace = True)
 	df.Condition.fillna('unknown', inplace = True)
-	df.Carrier.fillna('unknown', inplace = True) 
+	df.Carrier.fillna('unknown', inplace = True)
+	df.Seller.fillna('unknown', inplace = True)
 
 	# Remove $ and , from price columns.
 	df['ListPricePerUnit'] = df['ListPricePerUnit'].str.replace('$','').str.replace(',','')
